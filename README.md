@@ -13,22 +13,24 @@ QCRI Live New Demonstration is an internship project that aims to provide the us
 	b. Php
 
 	c. MySQL
+	
+	d. kafka
 
-	d. Python3+
+	e. Python3+
 
 	Packages: [Twitter](https://pypi.org/project/twitter/), [newspaper](https://github.com/codelucas/newspaper), [tweepy](http://tweepy.readthedocs.io/en/v3.5.0/), MySQLdb, reosette-api and json
 
-		pip install twitter newspaper3k mysqlclient reosette-api json
+		pip3 install twitter newspaper3k mysqlclient reosette_api confluent-kafka
 
 	Note: Some dependencies might have to be in place when running the above command. Some hints on how to install these on various platforms:
 
 	Ubuntu 14, Ubuntu 16, Debian 8.6 (jessie)
 
-		sudo apt-get install python-pip python-dev libmysqlclient-dev
+		sudo apt-get install python-pip python-dev libmysqlclient-dev librdkafka-dev
 
 	Mac OS
 
-		brew install mysql-connector-c
+		brew install mysql-connector-c librdkafka-dev
 
 	if that fails, try
 

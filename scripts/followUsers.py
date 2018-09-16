@@ -17,14 +17,13 @@ import MySQLdb
 import json
 import argparse
 from newspaper import Article
+from confluent_kafka import Producer, Consumer, KafkaError, KafkaException, OFFSET_BEGINNING
 
 
-# Connect to MySQL
-# Update Connection details
-db=MySQLdb.connect(host="localhost",database="reactapp",user="<dbuser>",password='<dbpass>',unix_socket='/var/run/mysqld/mysqld.sock', charset = 'utf8')
-cursor=db.cursor()
 
-
+def kafka_producer(kafka_host="kafka", logger=None):
+  return Producer({'bootstrap.servers': kafka_host, 
+                   'broker.address.family': 'v4'}, logger=logger)
 
 class TwitterClient:
     def __init__(self, config_file="config.txt"):
@@ -125,7 +124,8 @@ class TwitterClient:
         return wait_time
 
 
-def getArticle(link):    
+def getArticle(link, producer, language):    
+    
     article1=Article(link)
 #    try:
     article1.download()
@@ -137,6 +137,17 @@ def getArticle(link):
         
     image = article1.top_image
     url = article1.url
+    text = article1.text
+
+    articleDct = {
+      'url': link,
+      'crawler': 'Twitter',
+      'language': language[:2],
+    }
+
+    producer.produce('article-url', json.dumps(articleDct))
+    producer.produce('logstash', json.dumps({'event': 'article-url'}))
+
     return (title, image)
 
 
@@ -160,17 +171,20 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
-def main():
+def main(cursor):
 
     # parse user input
     options = argparse.ArgumentParser()
 
     #file related args
+    options.add_argument("-h", "--host", default="kafka", help="kafka host")
     options.add_argument("-l", "--language",   default="ara", help="language to process (ara/eng)")
     
     options.parse_args()
 
     args = options.parse_args()
+
+    producer = kafka_producer(kafka_host=options.host)
 
     print("Processing "+args.language+" ....")
     #my_bot = TwitterClient()
@@ -211,7 +225,7 @@ def main():
                     #print("In0 Tweet:",tweet.__dict__['_json']['entities'])
                     try:
                         twurl = tweet.__dict__['_json']['entities']['urls'][0]['expanded_url']
-                        (twttle,twimag) = getArticle(twurl)
+                        (twttle,twimag) = getArticle(twurl, producer=producer, language=args.language)
                     except Exception as e:
                         #print("urls0-URLS:",tweet.__dict__['_json'])
                         continue
@@ -246,7 +260,7 @@ def main():
                             #print("In1 Tweet:",tweet.__dict__['_json']['entities'])
                             try:
                                 twurl = tweet.__dict__['_json']['entities']['urls'][0]['expanded_url']
-                                (twttle,twimag) = getArticle(twurl)
+                                (twttle,twimag) = getArticle(twurl, producer=producer, language=args.language)
                             except Exception as e:
                                 #print("urls1-URLS:",tweet.__dict__['_json'])
                                 continue
@@ -281,4 +295,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # Connect to MySQL
+    # Update Connection details
+    db=MySQLdb.connect(host="localhost",database="reactapp",user="<dbuser>",password='<dbpass>',unix_socket='/var/run/mysqld/mysqld.sock', charset = 'utf8')
+    cursor=db.cursor()
+
+    main(cursor)
