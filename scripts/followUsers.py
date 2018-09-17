@@ -12,6 +12,7 @@ import sys
 import time
 import random
 import tweepy
+import traceback
 import datetime
 import MySQLdb
 import json
@@ -179,7 +180,7 @@ def main(cursor):
     args = options.parse_args()
 
     proppy = Proppy()
-    producer = kafka_producer(kafka_host=options.host)
+    producer = kafka_producer(kafka_host=args.host)
 
     print("Processing "+args.language+" ....")
     #my_bot = TwitterClient()
@@ -222,6 +223,7 @@ def main(cursor):
                         twurl = tweet.__dict__['_json']['entities']['urls'][0]['expanded_url']
                         (twttle, twimag, proppyscore) = getArticle(twurl, proppy=proppy)
                     except Exception as e:
+                        print(traceback.format_exc())
                         #print("urls0-URLS:",tweet.__dict__['_json'])
                         continue
                     if(twimag==''):
@@ -257,6 +259,7 @@ def main(cursor):
                                 twurl = tweet.__dict__['_json']['entities']['urls'][0]['expanded_url']
                                 (twttle, twimag, proppyscore) = getArticle(twurl, proppy=proppy)
                             except Exception as e:
+                                print(traceback.format_exc())
                                 #print("urls1-URLS:",tweet.__dict__['_json'])
                                 continue
                             if(twimag==''):
