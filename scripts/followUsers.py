@@ -19,7 +19,7 @@ import json
 import argparse
 from newspaper import Article
 from confluent_kafka import Producer, Consumer, KafkaError, KafkaException, OFFSET_BEGINNING
-from proppyworker.proppy import Proppy
+from proppy import Proppy
 
 
 def kafka_producer(kafka_host="kafka", logger=None):
