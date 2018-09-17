@@ -18,7 +18,7 @@ import json
 import argparse
 from newspaper import Article
 from confluent_kafka import Producer, Consumer, KafkaError, KafkaException, OFFSET_BEGINNING
-
+from proppyworker.proppy import Proppy
 
 
 def kafka_producer(kafka_host="kafka", logger=None):
@@ -124,7 +124,7 @@ class TwitterClient:
         return wait_time
 
 
-def getArticle(link, producer, language):    
+def getArticle(link, proppy):    
     
     article1=Article(link)
 #    try:
@@ -134,21 +134,15 @@ def getArticle(link, producer, language):
 #    if downloading:
     article1.parse()
     title = article1.title
+
         
     image = article1.top_image
     url = article1.url
     text = article1.text
 
-    articleDct = {
-      'url': link,
-      'crawler': 'Twitter',
-      'language': language[:2],
-    }
+    score = proppy.predict(text)
 
-    producer.produce('article-url', json.dumps(articleDct))
-    producer.produce('logstash', json.dumps({'event': 'article-url'}))
-
-    return (title, image)
+    return (title, image, score)
 
 
 def limit_handled(cursor):
@@ -177,13 +171,14 @@ def main(cursor):
     options = argparse.ArgumentParser()
 
     #file related args
-    options.add_argument("-h", "--host", default="kafka", help="kafka host")
+    options.add_argument("--host", default="kafka", help="kafka host")
     options.add_argument("-l", "--language",   default="ara", help="language to process (ara/eng)")
     
     options.parse_args()
 
     args = options.parse_args()
 
+    proppy = Proppy()
     producer = kafka_producer(kafka_host=options.host)
 
     print("Processing "+args.language+" ....")
@@ -225,7 +220,7 @@ def main(cursor):
                     #print("In0 Tweet:",tweet.__dict__['_json']['entities'])
                     try:
                         twurl = tweet.__dict__['_json']['entities']['urls'][0]['expanded_url']
-                        (twttle,twimag) = getArticle(twurl, producer=producer, language=args.language)
+                        (twttle, twimag, proppyscore) = getArticle(twurl, proppy=proppy)
                     except Exception as e:
                         #print("urls0-URLS:",tweet.__dict__['_json'])
                         continue
@@ -260,7 +255,7 @@ def main(cursor):
                             #print("In1 Tweet:",tweet.__dict__['_json']['entities'])
                             try:
                                 twurl = tweet.__dict__['_json']['entities']['urls'][0]['expanded_url']
-                                (twttle,twimag) = getArticle(twurl, producer=producer, language=args.language)
+                                (twttle, twimag, proppyscore) = getArticle(twurl, proppy=proppy)
                             except Exception as e:
                                 #print("urls1-URLS:",tweet.__dict__['_json'])
                                 continue
