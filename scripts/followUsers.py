@@ -141,7 +141,10 @@ def getArticle(link, proppy):
     url = article1.url
     text = article1.text
 
-    score = proppy.predict(text)
+    if text:
+        score = proppy.predict(text)
+    else:
+        score = 0.0
 
     return (title, image, score)
 
